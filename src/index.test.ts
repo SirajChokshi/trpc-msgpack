@@ -68,6 +68,59 @@ describe('stripUndefined', () => {
     const result = stripUndefined(input);
     expect(result).toEqual({});
   });
+
+  describe('defensive handling', () => {
+    it('handles circular references without crashing', () => {
+      type CircularRoot = { a: number; b: number; self?: CircularRoot };
+      const obj: CircularRoot = { a: 1, b: 2 };
+      obj.self = obj;
+      const result = stripUndefined(obj);
+      expect(result.a).toBe(1);
+      expect(result.b).toBe(2);
+    });
+
+    it('handles deeply nested circular references', () => {
+      type NestedCircular = {
+        level1: { level2: { level3: { back?: NestedCircular } } };
+      };
+      const obj: NestedCircular = { level1: { level2: { level3: {} } } };
+      obj.level1.level2.level3.back = obj;
+      expect(() => stripUndefined(obj)).not.toThrow();
+    });
+
+    it('throws error when depth exceeds limit', () => {
+      type DeepNode = { nested?: DeepNode };
+      const deep: DeepNode = {};
+      let current: DeepNode = deep;
+      for (let i = 0; i < 150; i++) {
+        const next: DeepNode = {};
+        current.nested = next;
+        current = next;
+      }
+      expect(() => stripUndefined(deep)).toThrow('Maximum depth');
+    });
+
+    it('handles objects at exactly max depth', () => {
+      type DeepNode = { nested?: DeepNode };
+      const deep: DeepNode = {};
+      let current: DeepNode = deep;
+      for (let i = 0; i < 99; i++) {
+        const next: DeepNode = {};
+        current.nested = next;
+        current = next;
+      }
+      expect(() => stripUndefined(deep)).not.toThrow();
+    });
+
+    it('strips undefined in circular structures', () => {
+      type SelfRef = { a: number; b?: number; self?: SelfRef };
+      const obj: SelfRef = { a: 1, b: undefined };
+      obj.self = obj;
+      const result = stripUndefined(obj);
+      expect(result.a).toBe(1);
+      expect('b' in result).toBe(false);
+    });
+  });
 });
 
 describe('msgpackEncoder', () => {
