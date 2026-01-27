@@ -68,6 +68,50 @@ describe('stripUndefined', () => {
     const result = stripUndefined(input);
     expect(result).toEqual({});
   });
+
+  describe('defensive handling', () => {
+    it('handles circular references without crashing', () => {
+      const obj: any = { a: 1, b: 2 };
+      obj.self = obj;
+      const result = stripUndefined(obj);
+      expect(result.a).toBe(1);
+      expect(result.b).toBe(2);
+    });
+
+    it('handles deeply nested circular references', () => {
+      const obj: any = { level1: { level2: { level3: {} } } };
+      obj.level1.level2.level3.back = obj;
+      expect(() => stripUndefined(obj)).not.toThrow();
+    });
+
+    it('throws error when depth exceeds limit', () => {
+      let deep: any = {};
+      let current = deep;
+      for (let i = 0; i < 150; i++) {
+        current.nested = {};
+        current = current.nested;
+      }
+      expect(() => stripUndefined(deep)).toThrow('Maximum depth');
+    });
+
+    it('handles objects at exactly max depth', () => {
+      let deep: any = {};
+      let current = deep;
+      for (let i = 0; i < 99; i++) {
+        current.nested = {};
+        current = current.nested;
+      }
+      expect(() => stripUndefined(deep)).not.toThrow();
+    });
+
+    it('strips undefined in circular structures', () => {
+      const obj: any = { a: 1, b: undefined };
+      obj.self = obj;
+      const result = stripUndefined(obj);
+      expect(result.a).toBe(1);
+      expect('b' in result).toBe(false);
+    });
+  });
 });
 
 describe('msgpackEncoder', () => {
