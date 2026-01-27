@@ -61,7 +61,7 @@ MessagePack is a binary serialization format that offers:
 - **Faster parsing**: Binary formats are faster to parse than text-based formats
 - **Full type support**: Supports all JSON types plus binary data
 
-Binary messages can provide noticable speed improvements for latency-sensitive prefetching and subscription handling.
+Binary messages can provide noticeable speed improvements for latency-sensitive prefetching and subscription handling.
 
 ## API
 
